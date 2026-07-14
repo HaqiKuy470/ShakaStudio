@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-[100dvh] flex-col justify-center border-b border-white/10 px-6 pt-24">
+    <section className="relative flex flex-col border-b border-white/10 px-6 pt-28 pb-16 md:min-h-[100dvh] md:justify-center md:py-0">
       <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6">
         <Image
           src="/atas.webp"
