@@ -18,10 +18,10 @@ export function Nav() {
           Shaka Studio
         </a>
         <a
-          href="#"
+          href="https://www.roblox.com/id/communities/1024079202"
           className="hidden border border-cyan px-4 py-2 text-xs font-bold tracking-widest text-cyan transition-colors hover:bg-cyan hover:text-black md:inline-block"
         >
-          JOIN DISCORD
+          JOIN COMMUNITY
         </a>
         <button
           type="button"
