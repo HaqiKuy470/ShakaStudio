@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 
-// Dipanggil oleh bot Discord (lihat BotDc/index.js -> notifyNewGuild) tiap
-// kali bot di-invite ke server baru. Kita cuma mencatat & (opsional) meneruskan
-// notifikasi ke channel Discord admin -- persetujuan/verifikasi server tetap
-// manual lewat env var VERIFIED_GUILD_IDS (lihat /api/discord/verified-guilds).
+// Dipanggil oleh bot Discord (lihat BotDc/index.js -> notifyNewGuild/notifyGuildLeft)
+// tiap kali bot di-invite atau di-kick dari sebuah server. Bot sekarang
+// auto-mengizinkan semua server (lihat BLOCKED_GUILD_IDS di BotDc/.env),
+// jadi endpoint ini murni buat kamu tahu ada server baru pasang bot --
+// nggak ngatur izin apapun.
 const WEBHOOK_SECRET = process.env.DISCORD_WEBHOOK_SECRET;
 const ADMIN_NOTIFY_WEBHOOK_URL = process.env.DISCORD_ADMIN_NOTIFY_WEBHOOK_URL;
 
-type GuildJoinedPayload = {
-  event?: string;
+type GuildEventPayload = {
+  event?: "guild_joined" | "guild_left";
+  botId?: string;
   guildId?: string;
   guildName?: string;
   ownerId?: string;
@@ -16,8 +18,8 @@ type GuildJoinedPayload = {
   joinedAt?: string;
 };
 
-async function notifyAdmin(payload: GuildJoinedPayload) {
-  if (!ADMIN_NOTIFY_WEBHOOK_URL) return;
+async function notifyAdmin(payload: GuildEventPayload) {
+  if (!ADMIN_NOTIFY_WEBHOOK_URL || payload.event !== "guild_joined") return;
   try {
     await fetch(ADMIN_NOTIFY_WEBHOOK_URL, {
       method: "POST",
@@ -26,7 +28,7 @@ async function notifyAdmin(payload: GuildJoinedPayload) {
         embeds: [
           {
             title: "Server baru pasang bot",
-            description: `**${payload.guildName}** (\`${payload.guildId}\`) baru saja invite bot.\n\nTambahkan \`${payload.guildId}\` ke \`VERIFIED_GUILD_IDS\` kalau mau diizinkan pakai fitur Join-to-Create.`,
+            description: `**${payload.guildName}** (\`${payload.guildId}\`) baru saja invite bot dan langsung aktif otomatis.`,
             color: 0x00f0ff,
             fields: [
               { name: "Owner ID", value: String(payload.ownerId ?? "-"), inline: true },
@@ -50,19 +52,19 @@ export async function POST(request: Request) {
     }
   }
 
-  let payload: GuildJoinedPayload;
+  let payload: GuildEventPayload;
   try {
     payload = await request.json();
   } catch {
     return NextResponse.json({ success: false, error: "Body tidak valid" }, { status: 400 });
   }
 
-  if (!payload.guildId) {
-    return NextResponse.json({ success: false, error: "guildId wajib diisi" }, { status: 400 });
+  if (!payload.guildId || !payload.guildName) {
+    return NextResponse.json({ success: false, error: "guildId dan guildName wajib diisi" }, { status: 400 });
   }
 
   console.log(
-    `[discord-webhook] ${payload.event ?? "guild_joined"}: ${payload.guildName} (${payload.guildId})`
+    `[discord-webhook] ${payload.event ?? "guild_joined"} (${payload.botId ?? "jtc-voice"}): ${payload.guildName} (${payload.guildId})`
   );
 
   await notifyAdmin(payload);
